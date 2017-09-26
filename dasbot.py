@@ -11,6 +11,7 @@ logger = logging.getLogger(__name__)
 
 TOKEN = '402368953:AAFBcA-TUEyR7-DQMxAzIA-IzPNahiWahfM'
 
+
 # Define a few command handlers. These usually take the two arguments bot and
 # update. Error handlers also receive the raised TelegramError object in error.
 def start(bot, update):
@@ -21,12 +22,9 @@ def help(bot, update):
     update.message.reply_text('RTFM')
 
 def random(bot, update):
-    random_elo = json.loads(requests.get('http://ns3276663.ip-5-39-89.eu:58080/api/random').text)
-    # marche pas
-    cado = "http://ns3276663.ip-5-39-89.eu:58080/static/gifs/%s" % random_elo['gif']
-    # marche 
-#     cado = "https://media.giphy.com/media/3ov9k4IWLQYD0VMnII/giphy.gif"
-#     cado = "https://media.giphy.com/media/l1J9LkBgw4fMVk59e/giphy.gif"
+
+    random_elo = requests.get('http://ns3276663.ip-5-39-89.eu:58080/api/random').json()
+    cado = "http://ns3276663.ip-5-39-89.eu/elo-gif/%s" % random_elo['gif']
     chat_id = update.message.chat_id
 
     bot.send_document(chat_id=chat_id, document=cado)
