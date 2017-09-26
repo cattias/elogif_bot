@@ -25,8 +25,8 @@ def random(bot, update):
     # marche pas
     cado = "http://ns3276663.ip-5-39-89.eu:58080/static/gifs/%s" % random_elo['gif']
     # marche 
-    cado = "https://media.giphy.com/media/3ov9k4IWLQYD0VMnII/giphy.gif"
-    cado = "https://media.giphy.com/media/l1J9LkBgw4fMVk59e/giphy.gif"
+#     cado = "https://media.giphy.com/media/3ov9k4IWLQYD0VMnII/giphy.gif"
+#     cado = "https://media.giphy.com/media/l1J9LkBgw4fMVk59e/giphy.gif"
     chat_id = update.message.chat_id
 
     bot.send_document(chat_id=chat_id, document=cado)
