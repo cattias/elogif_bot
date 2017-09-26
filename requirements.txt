@@ -47,6 +47,7 @@ oslo.serialization==2.17.0
 oslo.utils==3.23.0
 paramiko==1.17.2
 pbr==2.0.0
+pex==1.2.11
 Pillow==4.2.1
 pluggy==0.4.0
 positional==1.1.1

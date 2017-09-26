@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
 from uuid import uuid4
-import re, json, requests
+import re, json, requests, sys, argparse
 from telegram import InlineQueryResultArticle, ParseMode, InputTextMessageContent, ParseMode
 from telegram.ext import Updater, InlineQueryHandler, CommandHandler
 import logging
@@ -9,20 +9,21 @@ import logging
 logging.basicConfig(format='%(asctime)s - %(name)s - %(levelname)s - %(message)s', level=logging.INFO)
 logger = logging.getLogger(__name__)
 
-TOKEN = '402368953:AAFBcA-TUEyR7-DQMxAzIA-IzPNahiWahfM'
-
-
 # Define a few command handlers. These usually take the two arguments bot and
 # update. Error handlers also receive the raised TelegramError object in error.
 def start(bot, update):
-    update.message.reply_text('Salut les moules! Qui veut du boobies ??')
+    bot.send_message(chat_id=update.message.chat_id, text='Salut les moules! Qui veut du boobies ??')
 
 
 def help(bot, update):
-    update.message.reply_text('RTFM')
+    bot.send_message(chat_id=update.message.chat_id, text='RTFM')
 
 def random(bot, update):
-
+    logger.info("Random boobies asked by '%s %s' (id=%s) in chat room '%s' (id=%s) !" % (update.message.from_user.first_name,
+                                                                                         update.message.from_user.last_name,
+                                                                                         update.message.from_user.id,
+                                                                                         update.message.chat.title,
+                                                                                         update.message.chat.id))
     random_elo = requests.get('http://ns3276663.ip-5-39-89.eu:58080/api/random').json()
     cado = "http://ns3276663.ip-5-39-89.eu/elo-gif/%s" % random_elo['gif']
     chat_id = update.message.chat_id
@@ -32,9 +33,9 @@ def random(bot, update):
 def error(bot, update, error):
     logger.warning('Update "%s" caused error "%s"' % (update, error))
 
-def main():
+def main(token):
     # Create the Updater and pass it your bot's token.
-    updater = Updater(TOKEN)
+    updater = Updater(token)
 
     # Get the dispatcher to register handlers
     dp = updater.dispatcher
@@ -48,6 +49,7 @@ def main():
     dp.add_error_handler(error)
 
     # Start the Bot
+    logger.info("start listening ...")
     updater.start_polling()
 
     # Block until the user presses Ctrl-C or the process receives SIGINT,
@@ -57,4 +59,10 @@ def main():
 
 
 if __name__ == '__main__':
-    main()
+    parser = argparse.ArgumentParser(description="This is Das Bot for Telegram interface with EloGif",
+                                     formatter_class=argparse.ArgumentDefaultsHelpFormatter)
+
+    parser.add_argument('--token', required=True, help='The bot token !')
+
+    options = parser.parse_args()
+    main(options.token)
