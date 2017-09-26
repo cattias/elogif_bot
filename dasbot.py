@@ -2,7 +2,7 @@
 # -*- coding: utf-8 -*-
 from uuid import uuid4
 import re, json, requests
-from telegram import InlineQueryResultArticle, ParseMode, InputTextMessageContent
+from telegram import InlineQueryResultArticle, ParseMode, InputTextMessageContent, ParseMode
 from telegram.ext import Updater, InlineQueryHandler, CommandHandler
 import logging
 # Enable logging
@@ -22,9 +22,13 @@ def help(bot, update):
 
 def random(bot, update):
     random_elo = json.loads(requests.get('http://ns3276663.ip-5-39-89.eu:58080/api/random').text)
-    cado = "http://ns3276663.ip-5-39-89.eu:58080/static/gifs/" + random_elo['gif']
-    
-    bot.send_message(chat_id=update.message.chat_id, text=cado)
+    # marche pas
+    cado = "http://ns3276663.ip-5-39-89.eu:58080/static/gifs/%s" % random_elo['gif']
+    # marche 
+    cado = "https://media.giphy.com/media/3o7buiyYnf8OhsVp9m/giphy.gif"
+    chat_id = update.message.chat_id
+
+    bot.send_document(chat_id=chat_id, document=cado)
 
 def error(bot, update, error):
     logger.warning('Update "%s" caused error "%s"' % (update, error))
