@@ -1,9 +1,8 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
-from uuid import uuid4
-import re, json, requests, sys, argparse
-from telegram import InlineQueryResultArticle, ParseMode, InputTextMessageContent, ParseMode
-from telegram.ext import Updater, InlineQueryHandler, CommandHandler
+import requests, argparse
+from telegram import InlineKeyboardButton, InlineKeyboardMarkup
+from telegram.ext import Updater, CommandHandler, CallbackQueryHandler
 import logging
 import datetime
 # Enable logging
@@ -22,7 +21,7 @@ def start(bot, update):
 
 
 def help(bot, update):
-    bot.send_message(chat_id=update.message.chat_id, text='/random si tu veux des boobies random\n/rank xx si tu veux les boobies de rang xx')
+    bot.send_message(chat_id=update.message.chat_id, text='/random si tu veux des boobies random\n/rank xx si tu veux les boobies de rang xx\n/vote si tu veux voter !')
 
 def random(bot, update):
     user_id = update.message.from_user.id
@@ -90,6 +89,56 @@ def rank(bot, update):
                 LAST[user_id] = datetime.datetime.now()
                 bot.send_document(chat_id=chat_id, document=cado)
 
+def vote(bot, update):
+    chat_id = update.message.chat_id
+
+    cado_1 = None
+    cado_2 = None
+    win_1 = None
+    win_2 = None
+    len_win = 100
+    while len_win > 64:
+        random_elo = requests.get('http://ns3276663.ip-5-39-89.eu:58080/api/random').json()
+        boobies_1 = random_elo['gif'][:-4]
+        cado_1 = "http://ns3276663.ip-5-39-89.eu/elo-gif/%s.gif" % boobies_1
+        random_elo = requests.get('http://ns3276663.ip-5-39-89.eu:58080/api/random').json()
+        boobies_2 = random_elo['gif'][:-4]
+        while boobies_2 == boobies_1:
+            random_elo = requests.get('http://ns3276663.ip-5-39-89.eu:58080/api/random').json()
+            boobies_2 = random_elo['gif'][:-4]        
+        cado_2 = "http://ns3276663.ip-5-39-89.eu/elo-gif/%s.gif" % boobies_2
+    
+        win_1 = "%s %s" % (boobies_1, boobies_2)
+        win_2 = "%s %s" % (boobies_2, boobies_1)
+        len_win = len(win_1)
+
+    bot.send_message(chat_id=chat_id, text="C'est le moment de voter coquinou !")
+
+    bot.send_message(chat_id=chat_id, text="Boobies #1")
+    bot.send_document(chat_id=chat_id, document=cado_1)
+    bot.send_message(chat_id=chat_id, text="Boobies #2")
+    bot.send_document(chat_id=chat_id, document=cado_2)
+
+    keyboard = [[InlineKeyboardButton(text="Boobies #1", callback_data=win_1),
+                 InlineKeyboardButton(text="Boobies #2", callback_data=win_2)]]
+
+    reply_markup = InlineKeyboardMarkup(keyboard)
+
+    update.message.reply_text('Choisi ton favori:', reply_markup=reply_markup)
+
+def button(bot, update):
+    query = update.callback_query
+    user_id = query.from_user.id
+    win = query.data.split(" ")[0]
+    loose = query.data.split(" ")[1]
+    url = "http://ns3276663.ip-5-39-89.eu:58080/?id=%s&win=%s.gif&loose=%s.gif" % (user_id, win, loose)
+
+    bot.edit_message_text(text="A voté !",
+                          chat_id=query.message.chat_id,
+                          message_id=query.message.message_id)
+    
+    requests.get(url)
+
 def error(bot, update, error):
     logger.warning('Update "%s" caused error "%s"' % (update, error))
 
@@ -105,6 +154,8 @@ def main(token):
     dp.add_handler(CommandHandler("help", help))
     dp.add_handler(CommandHandler("random", random))
     dp.add_handler(CommandHandler("rank", rank))
+    dp.add_handler(CommandHandler("vote", vote))
+    dp.add_handler(CallbackQueryHandler(button))
 
     # log all errors
     dp.add_error_handler(error)
