@@ -13,6 +13,7 @@ COUNTER = {}
 LAST = {}
 LIMIT_PER_USER = 10
 TIME_LIMIT = datetime.timedelta(seconds=120)
+VOTES = []
 
 # Define a few command handlers. These usually take the two arguments bot and
 # update. Error handlers also receive the raised TelegramError object in error.
@@ -132,12 +133,15 @@ def button(bot, update):
     win = query.data.split(" ")[0]
     loose = query.data.split(" ")[1]
     url = "http://ns3276663.ip-5-39-89.eu:58080/?id=%s&win=%s.gif&loose=%s.gif" % (user_id, win, loose)
-
-    bot.edit_message_text(text="A voté !",
-                          chat_id=query.message.chat_id,
-                          message_id=query.message.message_id)
-    
-    requests.get(url)
+    key_1 = "%s-%s-%s" % (user_id, win, loose)
+    key_2 = "%s-%s-%s" % (user_id, loose, win)
+    if not key_1 in VOTES and not key_2 in VOTES:
+        text = u"%s a voté !" % query.from_user.username
+        bot.send_message(chat_id=query.message.chat_id, text=text)
+        logger.info(url)
+        requests.get(url)
+        VOTES.append(key_1)
+        VOTES.append(key_2)
 
 def error(bot, update, error):
     logger.warning('Update "%s" caused error "%s"' % (update, error))
