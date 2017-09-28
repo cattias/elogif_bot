@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
-import requests, argparse
+import requests, argparse, uuid
 from telegram import InlineKeyboardButton, InlineKeyboardMarkup
 from telegram.ext import Updater, CommandHandler, CallbackQueryHandler
 import logging
@@ -12,8 +12,8 @@ logger = logging.getLogger(__name__)
 COUNTER = {}
 LAST = {}
 LIMIT_PER_USER = 10
-TIME_LIMIT = datetime.timedelta(seconds=120)
-VOTES = []
+TIME_LIMIT = datetime.timedelta(seconds=60)
+VOTES = {}
 
 # Define a few command handlers. These usually take the two arguments bot and
 # update. Error handlers also receive the raised TelegramError object in error.
@@ -82,66 +82,62 @@ def rank(bot, update):
         else:
             if COUNTER[user_id] > LIMIT_PER_USER and delta >= TIME_LIMIT:
                 COUNTER[user_id] = 0
-            rank_elo = requests.get('http://ns3276663.ip-5-39-89.eu:58080/api/rank').json()
-            if len(rank_elo) < rank_n:
-                update.message.reply_text("Demande à Toto de me renvoyer plus que les %s premiers du classement ..." % len(rank_elo))
-            else:
-                cado = "http://ns3276663.ip-5-39-89.eu/elo-gif/%s" % rank_elo[rank_n-1]['gif']
-                LAST[user_id] = datetime.datetime.now()
-                bot.send_document(chat_id=chat_id, document=cado)
+            rank_elo = requests.get('http://ns3276663.ip-5-39-89.eu:58080/api/rank/%s' % rank_n).json()
+            cado = "http://ns3276663.ip-5-39-89.eu/elo-gif/%s" % rank_elo[0]['gif']
+            LAST[user_id] = datetime.datetime.now()
+            bot.send_document(chat_id=chat_id, document=cado)
 
 def vote(bot, update):
     chat_id = update.message.chat_id
-
-    cado_1 = None
-    cado_2 = None
-    win_1 = None
-    win_2 = None
-    len_win = 100
-    while len_win > 64:
-        random_elo = requests.get('http://ns3276663.ip-5-39-89.eu:58080/api/random').json()
-        boobies_1 = random_elo['gif'][:-4]
-        cado_1 = "http://ns3276663.ip-5-39-89.eu/elo-gif/%s.gif" % boobies_1
-        random_elo = requests.get('http://ns3276663.ip-5-39-89.eu:58080/api/random').json()
-        boobies_2 = random_elo['gif'][:-4]
-        while boobies_2 == boobies_1:
-            random_elo = requests.get('http://ns3276663.ip-5-39-89.eu:58080/api/random').json()
-            boobies_2 = random_elo['gif'][:-4]        
-        cado_2 = "http://ns3276663.ip-5-39-89.eu/elo-gif/%s.gif" % boobies_2
+    chat_member_count = bot.get_chat_members_count(chat_id)
     
-        win_1 = "%s %s" % (boobies_1, boobies_2)
-        win_2 = "%s %s" % (boobies_2, boobies_1)
-        len_win = len(win_1)
+    vote_elo = requests.get('http://ns3276663.ip-5-39-89.eu:58080/api/generate_vote/%s' % chat_member_count).json()
+    vote_id = str(uuid.uuid4())
+    
+    boobies_1 = vote_elo['choice_left']
+    cado_1 = "http://ns3276663.ip-5-39-89.eu/elo-gif/%s" % boobies_1
+    boobies_2 = vote_elo['choice_right']
+    cado_2 = "http://ns3276663.ip-5-39-89.eu/elo-gif/%s" % boobies_2
 
-    bot.send_message(chat_id=chat_id, text="C'est le moment de voter coquinou !")
+    VOTES[vote_id] = {'vote_elo' : vote_elo, 'votes' : {}}
+
+    bot.send_message(chat_id=chat_id, text="C'est le moment de voter les coquinous !")
 
     bot.send_message(chat_id=chat_id, text="Boobies #1")
     bot.send_document(chat_id=chat_id, document=cado_1)
     bot.send_message(chat_id=chat_id, text="Boobies #2")
     bot.send_document(chat_id=chat_id, document=cado_2)
 
-    keyboard = [[InlineKeyboardButton(text="Boobies #1", callback_data=win_1),
-                 InlineKeyboardButton(text="Boobies #2", callback_data=win_2)]]
+    keyboard = [[InlineKeyboardButton(text="Boobies #1", callback_data="%s choice_left" % vote_id),
+                 InlineKeyboardButton(text="Boobies #2", callback_data="%s choice_right" % vote_id)]]
 
     reply_markup = InlineKeyboardMarkup(keyboard)
 
-    update.message.reply_text('Choisi ton favori:', reply_markup=reply_markup)
+    bot.send_message(chat_id=chat_id, text='Choisi ton favori:', reply_markup=reply_markup)
 
 def button(bot, update):
     query = update.callback_query
     user_id = query.from_user.id
-    win = query.data.split(" ")[0]
-    loose = query.data.split(" ")[1]
-    url = "http://ns3276663.ip-5-39-89.eu:58080/?id=%s&win=%s.gif&loose=%s.gif" % (user_id, win, loose)
-    key_1 = "%s-%s-%s" % (user_id, win, loose)
-    key_2 = "%s-%s-%s" % (user_id, loose, win)
-    if not key_1 in VOTES and not key_2 in VOTES:
+    vote_id = query.data.split(" ")[0]
+    choice = query.data.split(" ")[1]
+    
+    vote_elo = VOTES[vote_id]['vote_elo']
+    votes = VOTES[vote_id]['votes']
+    
+    if not user_id in votes.keys():
+        token = vote_elo['tokens'].pop()
+        win = vote_elo[choice]
+        loose = vote_elo['choice_right'] if choice == 'choice_left' else vote_elo['choice_left']
+        url = "http://ns3276663.ip-5-39-89.eu:58080/?id=%s&win=%s&loose=%s" % (token, win, loose)
+
         text = u"%s a voté !" % query.from_user.username
         bot.send_message(chat_id=query.message.chat_id, text=text)
+
         logger.info(url)
         requests.get(url)
-        VOTES.append(key_1)
-        VOTES.append(key_2)
+        
+        VOTES[vote_id]['votes'][user_id] = choice
+
 
 def error(bot, update, error):
     logger.warning('Update "%s" caused error "%s"' % (update, error))
