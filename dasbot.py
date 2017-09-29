@@ -149,7 +149,10 @@ def button(bot, update):
             loose = vote_elo['choice_right'] if choice == 'choice_left' else vote_elo['choice_left']
             url = "http://ns3276663.ip-5-39-89.eu:58080/?id=%s&win=%s&loose=%s" % (token, win, loose)
 
-        text = u"%s a voté !" % query.from_user.username
+        voter = query.from_user.username
+        if voter is None:
+            voter = query.from_user.first_name
+        text = u"%s a voté !" % voter
         bot.send_message(chat_id=query.message.chat_id, text=text, timeout=GLOBAL_TIMEOUT)
 
         logger.info(url)
