@@ -1,5 +1,8 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
+import urllib3
+urllib3.disable_warnings()
+
 import requests, argparse, uuid
 from telegram import InlineKeyboardButton, InlineKeyboardMarkup
 from telegram.ext import Updater, CommandHandler, CallbackQueryHandler
@@ -13,7 +16,7 @@ COUNTER = {}
 LAST = {}
 LIMIT_PER_USER = 10
 TIME_LIMIT = datetime.timedelta(seconds=60)
-VOTES = {}
+VOTES = None
 
 # Define a few command handlers. These usually take the two arguments bot and
 # update. Error handlers also receive the raised TelegramError object in error.
@@ -90,16 +93,23 @@ def rank(bot, update):
 def vote(bot, update):
     chat_id = update.message.chat_id
     chat_member_count = bot.get_chat_members_count(chat_id)
+    global VOTES
     
-    vote_elo = requests.get('http://ns3276663.ip-5-39-89.eu:58080/api/generate_vote/%s' % chat_member_count).json()
-    vote_id = str(uuid.uuid4())
+    if VOTES is not None:
+        bot.send_message(chat_id=chat_id, text="Y a déjà un vote en cours. Si tu veux lancer un nouveau vote, termine celui là avec /stopvote. Bisous.")
+        return
+    
+    url = 'http://ns3276663.ip-5-39-89.eu:58080/api/generate_vote/%s' % chat_member_count
+    logger.info(url)
+    vote_elo = requests.get(url).json()
+    # vote_id = str(uuid.uuid4())
     
     boobies_1 = vote_elo['choice_left']
     cado_1 = "http://ns3276663.ip-5-39-89.eu/elo-gif/%s" % boobies_1
     boobies_2 = vote_elo['choice_right']
     cado_2 = "http://ns3276663.ip-5-39-89.eu/elo-gif/%s" % boobies_2
 
-    VOTES[vote_id] = {'vote_elo' : vote_elo, 'votes' : {}}
+    VOTES = {'vote_elo' : vote_elo, 'votes' : {}, 'choice_left' : 0, 'choice_right' : 0}
 
     bot.send_message(chat_id=chat_id, text="C'est le moment de voter les coquinous !")
 
@@ -108,8 +118,8 @@ def vote(bot, update):
     bot.send_message(chat_id=chat_id, text="Boobies #2")
     bot.send_document(chat_id=chat_id, document=cado_2)
 
-    keyboard = [[InlineKeyboardButton(text="Boobies #1", callback_data="%s choice_left" % vote_id),
-                 InlineKeyboardButton(text="Boobies #2", callback_data="%s choice_right" % vote_id)]]
+    keyboard = [[InlineKeyboardButton(text="Boobies #1", callback_data="choice_left"),
+                 InlineKeyboardButton(text="Boobies #2", callback_data="choice_right")]]
 
     reply_markup = InlineKeyboardMarkup(keyboard)
 
@@ -118,15 +128,16 @@ def vote(bot, update):
 def button(bot, update):
     query = update.callback_query
     user_id = query.from_user.id
-    vote_id = query.data.split(" ")[0]
-    choice = query.data.split(" ")[1]
-    
-    vote_elo = VOTES[vote_id]['vote_elo']
-    votes = VOTES[vote_id]['votes']
+    choice = query.data
+    global VOTES
+
+    vote_elo = VOTES['vote_elo']
+    votes = VOTES['votes']
     
     if not user_id in votes.keys():
         token = vote_elo['tokens'].pop()
         win = vote_elo[choice]
+        VOTES[choice] += 1
         loose = vote_elo['choice_right'] if choice == 'choice_left' else vote_elo['choice_left']
         url = "http://ns3276663.ip-5-39-89.eu:58080/?id=%s&win=%s&loose=%s" % (token, win, loose)
 
@@ -136,8 +147,33 @@ def button(bot, update):
         logger.info(url)
         requests.get(url)
         
-        VOTES[vote_id]['votes'][user_id] = choice
+        VOTES['votes'][user_id] = choice
 
+def stopvote(bot, update):
+    chat_id = update.message.chat_id
+    global VOTES
+    if VOTES is None:
+        bot.send_message(chat_id=chat_id, text="Y a pas de vote en cours ...")
+    else:
+        vote_elo = VOTES['vote_elo']
+        result_left = VOTES['choice_left']
+        result_right = VOTES['choice_right']
+        
+        victory_boobies = None
+        if result_left == result_right:
+            bot.send_message(chat_id=chat_id, text="Egalité entre les deux (%s votes chacun) ... c'est naze" % result_left)
+            return
+        elif result_left > result_right:
+            bot.send_message(chat_id=chat_id, text="And the winner is (avec %s votes contre %s):" % (result_left, result_right))
+            victory_boobies = vote_elo['choice_left']
+        else:
+            bot.send_message(chat_id=chat_id, text="And the winner is (avec %s votes contre %s):" % (result_right, result_left))
+            victory_boobies = vote_elo['choice_right']
+
+        cado = "http://ns3276663.ip-5-39-89.eu/elo-gif/%s" % victory_boobies
+        bot.send_document(chat_id=chat_id, document=cado)
+  
+        VOTES=None
 
 def error(bot, update, error):
     logger.warning('Update "%s" caused error "%s"' % (update, error))
@@ -155,6 +191,7 @@ def main(token):
     dp.add_handler(CommandHandler("random", random))
     dp.add_handler(CommandHandler("rank", rank))
     dp.add_handler(CommandHandler("vote", vote))
+    dp.add_handler(CommandHandler("stopvote", stopvote))
     dp.add_handler(CallbackQueryHandler(button))
 
     # log all errors
