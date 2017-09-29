@@ -119,7 +119,8 @@ def vote(bot, update):
     bot.send_document(chat_id=chat_id, document=cado_2)
 
     keyboard = [[InlineKeyboardButton(text="Boobies #1", callback_data="choice_left"),
-                 InlineKeyboardButton(text="Boobies #2", callback_data="choice_right")]]
+                 InlineKeyboardButton(text="Boobies #2", callback_data="choice_right"),
+                 InlineKeyboardButton(text="Meh ...", callback_data="meh")]]
 
     reply_markup = InlineKeyboardMarkup(keyboard)
 
@@ -131,15 +132,21 @@ def button(bot, update):
     choice = query.data
     global VOTES
 
+    if VOTES is None:
+        return
+
     vote_elo = VOTES['vote_elo']
     votes = VOTES['votes']
     
     if not user_id in votes.keys():
         token = vote_elo['tokens'].pop()
-        win = vote_elo[choice]
-        VOTES[choice] += 1
-        loose = vote_elo['choice_right'] if choice == 'choice_left' else vote_elo['choice_left']
-        url = "http://ns3276663.ip-5-39-89.eu:58080/?id=%s&win=%s&loose=%s" % (token, win, loose)
+        if choice == "meh":
+            url = "http://ns3276663.ip-5-39-89.eu:58080/?id=%s&draw_left=%s&draw_right=%s" % (token, vote_elo['choice_left'], vote_elo['choice_right'])
+        else:
+            win = vote_elo[choice]
+            VOTES[choice] += 1
+            loose = vote_elo['choice_right'] if choice == 'choice_left' else vote_elo['choice_left']
+            url = "http://ns3276663.ip-5-39-89.eu:58080/?id=%s&win=%s&loose=%s" % (token, win, loose)
 
         text = u"%s a voté !" % query.from_user.username
         bot.send_message(chat_id=query.message.chat_id, text=text)
