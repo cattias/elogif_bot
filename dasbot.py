@@ -103,14 +103,14 @@ def vote(bot, update):
     url = 'http://ns3276663.ip-5-39-89.eu:58080/api/generate_vote/%s' % chat_member_count
     logger.info(url)
     vote_elo = requests.get(url).json()
-    # vote_id = str(uuid.uuid4())
+    vote_id = str(uuid.uuid4())
     
     boobies_1 = vote_elo['choice_left']
     cado_1 = "http://ns3276663.ip-5-39-89.eu/elo-gif/%s" % boobies_1
     boobies_2 = vote_elo['choice_right']
     cado_2 = "http://ns3276663.ip-5-39-89.eu/elo-gif/%s" % boobies_2
 
-    VOTES = {'vote_elo' : vote_elo, 'votes' : {}, 'choice_left' : 0, 'choice_right' : 0}
+    VOTES = {'id': vote_id, 'vote_elo' : vote_elo, 'votes' : {}, 'choice_left' : 0, 'choice_right' : 0}
 
     bot.send_message(chat_id=chat_id, text="C'est le moment de voter les coquinous !", timeout=GLOBAL_TIMEOUT)
 
@@ -119,9 +119,9 @@ def vote(bot, update):
     bot.send_message(chat_id=chat_id, text="Boobies #2", timeout=GLOBAL_TIMEOUT)
     bot.send_document(chat_id=chat_id, document=cado_2, timeout=GLOBAL_TIMEOUT)
 
-    keyboard = [[InlineKeyboardButton(text="Boobies #1", callback_data="choice_left"),
-                 InlineKeyboardButton(text="Boobies #2", callback_data="choice_right"),
-                 InlineKeyboardButton(text="Meh ...", callback_data="meh")]]
+    keyboard = [[InlineKeyboardButton(text="Boobies #1", callback_data="%s|choice_left" % vote_id),
+                 InlineKeyboardButton(text="Boobies #2", callback_data="%s|choice_right" % vote_id),
+                 InlineKeyboardButton(text="Meh ...", callback_data="%s|meh" % vote_id)]]
 
     reply_markup = InlineKeyboardMarkup(keyboard)
 
@@ -130,35 +130,42 @@ def vote(bot, update):
 def button(bot, update):
     query = update.callback_query
     user_id = query.from_user.id
-    choice = query.data
+    data = query.data.split("|")
     global VOTES
 
     if VOTES is None:
         return
 
+    vote_id = VOTES['id']
     vote_elo = VOTES['vote_elo']
     votes = VOTES['votes']
     
-    if not user_id in votes.keys():
-        token = vote_elo['tokens'].pop()
-        if choice == "meh":
-            url = "http://ns3276663.ip-5-39-89.eu:58080/?id=%s&draw_left=%s&draw_right=%s" % (token, vote_elo['choice_left'], vote_elo['choice_right'])
-        else:
-            win = vote_elo[choice]
-            VOTES[choice] += 1
-            loose = vote_elo['choice_right'] if choice == 'choice_left' else vote_elo['choice_left']
-            url = "http://ns3276663.ip-5-39-89.eu:58080/?id=%s&win=%s&loose=%s" % (token, win, loose)
-
-        voter = query.from_user.username
-        if voter is None:
-            voter = query.from_user.first_name
-        text = u"%s a voté !" % voter
-        bot.send_message(chat_id=query.message.chat_id, text=text, timeout=GLOBAL_TIMEOUT)
-
-        logger.info(url)
-        requests.get(url)
+    if len(vote_elo['tokens']) == 0:
+        return
+    
+    if len(data) == 2:
+        if vote_id == data[0]:
+            choice = data[1]
+            if not user_id in votes.keys():
+                token = vote_elo['tokens'].pop()
+                if choice == "meh":
+                    url = "http://ns3276663.ip-5-39-89.eu:58080/?id=%s&draw_left=%s&draw_right=%s" % (token, vote_elo['choice_left'], vote_elo['choice_right'])
+                else:
+                    win = vote_elo[choice]
+                    VOTES[choice] += 1
+                    loose = vote_elo['choice_right'] if choice == 'choice_left' else vote_elo['choice_left']
+                    url = "http://ns3276663.ip-5-39-89.eu:58080/?id=%s&win=%s&loose=%s" % (token, win, loose)
         
-        VOTES['votes'][user_id] = choice
+                voter = query.from_user.username
+                if voter is None:
+                    voter = query.from_user.first_name
+                text = u"%s a voté !" % voter
+                bot.send_message(chat_id=query.message.chat_id, text=text, timeout=GLOBAL_TIMEOUT)
+        
+                logger.info(url)
+                requests.get(url)
+                
+                VOTES['votes'][user_id] = choice
 
 def stopvote(bot, update):
     chat_id = update.message.chat_id
