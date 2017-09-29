@@ -9,3 +9,4 @@ random - tu veux un boobies au pif ?
 rank - tu veux le boobies de rang xx ?
 vote - tu veux proposer un vote ?
 stopvote - pour clore le vote en cours !
+next - pour clore le vote en cours et enchaîner avec le suivant parce qu'on est pas là pour niaiser ...

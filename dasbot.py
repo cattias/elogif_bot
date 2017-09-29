@@ -17,15 +17,16 @@ LAST = {}
 LIMIT_PER_USER = 10
 TIME_LIMIT = datetime.timedelta(seconds=60)
 VOTES = None
+GLOBAL_TIMEOUT = 300
 
 # Define a few command handlers. These usually take the two arguments bot and
 # update. Error handlers also receive the raised TelegramError object in error.
 def start(bot, update):
-    bot.send_message(chat_id=update.message.chat_id, text='Salut les moules! Qui veut du boobies ??')
+    bot.send_message(chat_id=update.message.chat_id, text='Salut les moules! Qui veut du boobies ??', timeout=GLOBAL_TIMEOUT)
 
 
 def help(bot, update):
-    bot.send_message(chat_id=update.message.chat_id, text='/random si tu veux des boobies random\n/rank xx si tu veux les boobies de rang xx\n/vote si tu veux voter !\n/stopvote pour terminer le vote en cours')
+    bot.send_message(chat_id=update.message.chat_id, text='/random si tu veux des boobies random\n/rank xx si tu veux les boobies de rang xx\n/vote si tu veux voter !\n/stopvote pour terminer le vote en cours\n/next pour terminer le vote en cours et enchainer direct sur un nouveau vote', timeout=GLOBAL_TIMEOUT)
 
 def random(bot, update):
     user_id = update.message.from_user.id
@@ -49,7 +50,7 @@ def random(bot, update):
         random_elo = requests.get('http://ns3276663.ip-5-39-89.eu:58080/api/random').json()
         cado = "http://ns3276663.ip-5-39-89.eu/elo-gif/%s" % random_elo['gif']
         LAST[user_id] = datetime.datetime.now()
-        bot.send_document(chat_id=chat_id, document=cado)
+        bot.send_document(chat_id=chat_id, document=cado, timeout=GLOBAL_TIMEOUT)
 
 def rank(bot, update):
     user_id = update.message.from_user.id
@@ -88,7 +89,7 @@ def rank(bot, update):
             rank_elo = requests.get('http://ns3276663.ip-5-39-89.eu:58080/api/rank/%s' % rank_n).json()
             cado = "http://ns3276663.ip-5-39-89.eu/elo-gif/%s" % rank_elo[0]['gif']
             LAST[user_id] = datetime.datetime.now()
-            bot.send_document(chat_id=chat_id, document=cado)
+            bot.send_document(chat_id=chat_id, document=cado, timeout=GLOBAL_TIMEOUT)
 
 def vote(bot, update):
     chat_id = update.message.chat_id
@@ -96,7 +97,7 @@ def vote(bot, update):
     global VOTES
     
     if VOTES is not None:
-        bot.send_message(chat_id=chat_id, text="Y a déjà un vote en cours. Si tu veux lancer un nouveau vote, termine celui là avec /stopvote. Bisous.")
+        bot.send_message(chat_id=chat_id, text="Y a déjà un vote en cours. Si tu veux lancer un nouveau vote, termine celui là avec /stopvote. Bisous.", timeout=GLOBAL_TIMEOUT)
         return
     
     url = 'http://ns3276663.ip-5-39-89.eu:58080/api/generate_vote/%s' % chat_member_count
@@ -111,12 +112,12 @@ def vote(bot, update):
 
     VOTES = {'vote_elo' : vote_elo, 'votes' : {}, 'choice_left' : 0, 'choice_right' : 0}
 
-    bot.send_message(chat_id=chat_id, text="C'est le moment de voter les coquinous !")
+    bot.send_message(chat_id=chat_id, text="C'est le moment de voter les coquinous !", timeout=GLOBAL_TIMEOUT)
 
-    bot.send_message(chat_id=chat_id, text="Boobies #1")
-    bot.send_document(chat_id=chat_id, document=cado_1)
-    bot.send_message(chat_id=chat_id, text="Boobies #2")
-    bot.send_document(chat_id=chat_id, document=cado_2)
+    bot.send_message(chat_id=chat_id, text="Boobies #1", timeout=GLOBAL_TIMEOUT)
+    bot.send_document(chat_id=chat_id, document=cado_1, timeout=GLOBAL_TIMEOUT)
+    bot.send_message(chat_id=chat_id, text="Boobies #2", timeout=GLOBAL_TIMEOUT)
+    bot.send_document(chat_id=chat_id, document=cado_2, timeout=GLOBAL_TIMEOUT)
 
     keyboard = [[InlineKeyboardButton(text="Boobies #1", callback_data="choice_left"),
                  InlineKeyboardButton(text="Boobies #2", callback_data="choice_right"),
@@ -124,7 +125,7 @@ def vote(bot, update):
 
     reply_markup = InlineKeyboardMarkup(keyboard)
 
-    bot.send_message(chat_id=chat_id, text='Choisi ton favori:', reply_markup=reply_markup)
+    bot.send_message(chat_id=chat_id, text='Choisi ton favori:', reply_markup=reply_markup, timeout=GLOBAL_TIMEOUT)
 
 def button(bot, update):
     query = update.callback_query
@@ -149,7 +150,7 @@ def button(bot, update):
             url = "http://ns3276663.ip-5-39-89.eu:58080/?id=%s&win=%s&loose=%s" % (token, win, loose)
 
         text = u"%s a voté !" % query.from_user.username
-        bot.send_message(chat_id=query.message.chat_id, text=text)
+        bot.send_message(chat_id=query.message.chat_id, text=text, timeout=GLOBAL_TIMEOUT)
 
         logger.info(url)
         requests.get(url)
@@ -160,7 +161,7 @@ def stopvote(bot, update):
     chat_id = update.message.chat_id
     global VOTES
     if VOTES is None:
-        bot.send_message(chat_id=chat_id, text="Y a pas de vote en cours ...")
+        bot.send_message(chat_id=chat_id, text="Y a pas de vote en cours ...", timeout=GLOBAL_TIMEOUT)
     else:
         vote_elo = VOTES['vote_elo']
         result_left = VOTES['choice_left']
@@ -168,20 +169,24 @@ def stopvote(bot, update):
         
         victory_boobies = None
         if result_left == result_right:
-            bot.send_message(chat_id=chat_id, text="Egalité entre les deux (%s votes chacun) ... c'est naze" % result_left)
+            bot.send_message(chat_id=chat_id, text="Egalité entre les deux (%s votes chacun) ... c'est naze" % result_left, timeout=GLOBAL_TIMEOUT)
             VOTES=None
             return
         elif result_left > result_right:
-            bot.send_message(chat_id=chat_id, text="And the winner is (avec %s votes contre %s):" % (result_left, result_right))
+            bot.send_message(chat_id=chat_id, text="And the winner is (avec %s votes contre %s):" % (result_left, result_right), timeout=GLOBAL_TIMEOUT)
             victory_boobies = vote_elo['choice_left']
         else:
-            bot.send_message(chat_id=chat_id, text="And the winner is (avec %s votes contre %s):" % (result_right, result_left))
+            bot.send_message(chat_id=chat_id, text="And the winner is (avec %s votes contre %s):" % (result_right, result_left), timeout=GLOBAL_TIMEOUT)
             victory_boobies = vote_elo['choice_right']
 
         cado = "http://ns3276663.ip-5-39-89.eu/elo-gif/%s" % victory_boobies
-        bot.send_document(chat_id=chat_id, document=cado)
+        bot.send_document(chat_id=chat_id, document=cado, timeout=GLOBAL_TIMEOUT)
   
         VOTES=None
+
+def next(bot, update):
+    stopvote(bot, update)
+    vote(bot, update)
 
 def error(bot, update, error):
     logger.warning('Update "%s" caused error "%s"' % (update, error))
@@ -199,6 +204,7 @@ def main(token):
     dp.add_handler(CommandHandler("random", random))
     dp.add_handler(CommandHandler("rank", rank))
     dp.add_handler(CommandHandler("vote", vote))
+    dp.add_handler(CommandHandler("next", next))
     dp.add_handler(CommandHandler("stopvote", stopvote))
     dp.add_handler(CallbackQueryHandler(button))
 
