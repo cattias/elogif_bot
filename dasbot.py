@@ -25,7 +25,7 @@ def start(bot, update):
 
 
 def help(bot, update):
-    bot.send_message(chat_id=update.message.chat_id, text='/random si tu veux des boobies random\n/rank xx si tu veux les boobies de rang xx\n/vote si tu veux voter !')
+    bot.send_message(chat_id=update.message.chat_id, text='/random si tu veux des boobies random\n/rank xx si tu veux les boobies de rang xx\n/vote si tu veux voter !\n/stopvote pour terminer le vote en cours')
 
 def random(bot, update):
     user_id = update.message.from_user.id
