@@ -162,6 +162,7 @@ def stopvote(bot, update):
         victory_boobies = None
         if result_left == result_right:
             bot.send_message(chat_id=chat_id, text="Egalité entre les deux (%s votes chacun) ... c'est naze" % result_left)
+            VOTES=None
             return
         elif result_left > result_right:
             bot.send_message(chat_id=chat_id, text="And the winner is (avec %s votes contre %s):" % (result_left, result_right))
