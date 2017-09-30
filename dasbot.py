@@ -18,47 +18,75 @@ LIMIT_PER_USER = 10
 TIME_LIMIT = datetime.timedelta(seconds=60)
 VOTES = None
 GLOBAL_TIMEOUT = 300
+URL_ELO = 'http://ns3276663.ip-5-39-89.eu'
+PORT_ELO = 58080
+URL_ELO_API = '%s:%s/api' % (URL_ELO, PORT_ELO)
+URL_ELO_GIF = '%s/elo-gif' % URL_ELO
 
-# Define a few command handlers. These usually take the two arguments bot and
-# update. Error handlers also receive the raised TelegramError object in error.
 def start(bot, update):
     bot.send_message(chat_id=update.message.chat_id, text='Salut les moules! Qui veut du boobies ??', timeout=GLOBAL_TIMEOUT)
 
+def help_command(bot, update):
+    logger.info("Help asked by '%s %s' (id=%s)" % (update.message.from_user.first_name, update.message.from_user.last_name, update.message.from_user.id))
+    help_text = """
+/random si tu veux des boobies random
+/rank xx si tu veux les boobies de rang xx
+/vote si tu veux proposer un vote !
+/stopvote pour terminer le vote en cours
+/next pour terminer le vote en cours et enchainer direct sur un nouveau vote ... parce qu'on est pas là pour niaiser !
+    """
+    bot.send_message(chat_id=update.message.chat_id, text=help_text, timeout=GLOBAL_TIMEOUT)
 
-def help(bot, update):
-    bot.send_message(chat_id=update.message.chat_id, text='/random si tu veux des boobies random\n/rank xx si tu veux les boobies de rang xx\n/vote si tu veux voter !\n/stopvote pour terminer le vote en cours\n/next pour terminer le vote en cours et enchainer direct sur un nouveau vote', timeout=GLOBAL_TIMEOUT)
-
-def random(bot, update):
+def _get_boobies(bot, update, command, rank=None):
+    """
+    Internal command to get boobies, either rank or random
+    command = 'rank' or 'random'
+    """
     user_id = update.message.from_user.id
     chat_id = update.message.chat_id
     if not COUNTER.get(user_id):
         COUNTER[user_id] = 0
         LAST[user_id] = datetime.datetime.now()
     COUNTER[user_id] += 1
-    logger.info("Random boobies asked by '%s %s' (id=%s) for the #%s time in chat room '%s' (id=%s) !" % (update.message.from_user.first_name,
-                                                                                                          update.message.from_user.last_name,
-                                                                                                          user_id,
-                                                                                                          COUNTER[user_id],
-                                                                                                          update.message.chat.title,
-                                                                                                          chat_id))
+    logger.info("Boobies asked by '%s %s' (id=%s) for the #%s time in chat room '%s' (id=%s) !" % (update.message.from_user.first_name,
+                                                                                                   update.message.from_user.last_name,
+                                                                                                   user_id,
+                                                                                                   COUNTER[user_id],
+                                                                                                   update.message.chat.title,
+                                                                                                   chat_id))
     delta = datetime.datetime.now() - LAST[user_id]
     if COUNTER[user_id] > LIMIT_PER_USER and delta < TIME_LIMIT:
         update.message.reply_text("Va te soulager un coup et reviens dans %s secondes ... Bisous Coeur Coeur Love" % (TIME_LIMIT.seconds - delta.seconds))
     else:
         if COUNTER[user_id] > LIMIT_PER_USER and delta >= TIME_LIMIT:
             COUNTER[user_id] = 0
-        random_elo = requests.get('http://ns3276663.ip-5-39-89.eu:58080/api/random').json()
-        cado = "http://ns3276663.ip-5-39-89.eu/elo-gif/%s" % random_elo['gif']
+        url = '%s/%s' % (URL_ELO_API, command)
+        if rank is not None and command == 'rank':
+            url = '%s/%s' % (url, rank)
+        logger.info("_get_boobies - %s - %s" % (command, url))
+        request_elo = requests.get(url).json()
+        boobies = None
+        if command == 'rank':
+            boobies = request_elo[0]['gif']
+        else:
+            boobies = request_elo['gif']
+        cado = "%s/%s" % (URL_ELO_GIF, boobies)
+        logger.info("_get_boobies - %s - %s" % (command, cado))
         LAST[user_id] = datetime.datetime.now()
         bot.send_document(chat_id=chat_id, document=cado, timeout=GLOBAL_TIMEOUT)
 
+def random(bot, update):
+    """
+    Telegram command to get random boobies
+    /random
+    """
+    _get_boobies(bot, update, command='random')
+
 def rank(bot, update):
-    user_id = update.message.from_user.id
-    chat_id = update.message.chat_id
-    if not COUNTER.get(user_id):
-        COUNTER[user_id] = 0
-        LAST[user_id] = datetime.datetime.now()
-    COUNTER[user_id] += 1
+    """
+    Telegram command to get ranked boobies
+    /rank n - n cannot be empty or non integer
+    """
     rank_n = 0
     if update.message.text:
         split = update.message.text.split(" ")
@@ -73,25 +101,14 @@ def rank(bot, update):
     if rank_n == 0:
         update.message.reply_text("Demande moi un rang comme il faut baltringue ... /rank 1 par exemple ...")
     else:    
-        logger.info("Boobies #%s asked by '%s %s' (id=%s) for the #%s time in chat room '%s' (id=%s) !" % (rank_n,
-                                                                                                           update.message.from_user.first_name,
-                                                                                                           update.message.from_user.last_name,
-                                                                                                           user_id,
-                                                                                                           COUNTER[user_id],
-                                                                                                           update.message.chat.title,
-                                                                                                           chat_id))
-        delta = datetime.datetime.now() - LAST[user_id]
-        if COUNTER[user_id] > LIMIT_PER_USER and delta < TIME_LIMIT:
-            update.message.reply_text("Va te soulager un coup et reviens dans %s secondes ... Bisous Coeur Coeur Love" % (TIME_LIMIT.seconds - delta.seconds))
-        else:
-            if COUNTER[user_id] > LIMIT_PER_USER and delta >= TIME_LIMIT:
-                COUNTER[user_id] = 0
-            rank_elo = requests.get('http://ns3276663.ip-5-39-89.eu:58080/api/rank/%s' % rank_n).json()
-            cado = "http://ns3276663.ip-5-39-89.eu/elo-gif/%s" % rank_elo[0]['gif']
-            LAST[user_id] = datetime.datetime.now()
-            bot.send_document(chat_id=chat_id, document=cado, timeout=GLOBAL_TIMEOUT)
+        _get_boobies(bot, update, command='rank', rank=rank_n)
 
 def vote(bot, update):
+    """
+    Telegram command to propose a boobies vote
+    /vote
+    """
+    logger.info("Vote asked by '%s %s' (id=%s)" % (update.message.from_user.first_name, update.message.from_user.last_name, update.message.from_user.id))
     chat_id = update.message.chat_id
     chat_member_count = bot.get_chat_members_count(chat_id)
     global VOTES
@@ -100,20 +117,21 @@ def vote(bot, update):
         bot.send_message(chat_id=chat_id, text="Y a déjà un vote en cours. Si tu veux lancer un nouveau vote, termine celui là avec /stopvote. Bisous.", timeout=GLOBAL_TIMEOUT)
         return
     
-    url = 'http://ns3276663.ip-5-39-89.eu:58080/api/generate_vote/%s' % chat_member_count
-    logger.info(url)
+    url = '%s/generate_vote/%s' % (URL_ELO_API, chat_member_count)
+    logger.info("vote - %s" % url)
     vote_elo = requests.get(url).json()
     vote_id = str(uuid.uuid4())
     
     boobies_1 = vote_elo['choice_left']
-    cado_1 = "http://ns3276663.ip-5-39-89.eu/elo-gif/%s" % boobies_1
+    cado_1 = "%s/%s" % (URL_ELO_GIF, boobies_1)
+    logger.info("vote - cado_1 - %s" % cado_1)
     boobies_2 = vote_elo['choice_right']
-    cado_2 = "http://ns3276663.ip-5-39-89.eu/elo-gif/%s" % boobies_2
+    cado_2 = "%s/%s" % (URL_ELO_GIF, boobies_2)
+    logger.info("vote - cado_2 - %s" % cado_2)
 
     VOTES = {'id': vote_id, 'vote_elo' : vote_elo, 'votes' : {}, 'choice_left' : 0, 'choice_right' : 0}
 
     bot.send_message(chat_id=chat_id, text="C'est le moment de voter les coquinous !", timeout=GLOBAL_TIMEOUT)
-
     bot.send_message(chat_id=chat_id, text="Boobies #1", timeout=GLOBAL_TIMEOUT)
     bot.send_document(chat_id=chat_id, document=cado_1, timeout=GLOBAL_TIMEOUT)
     bot.send_message(chat_id=chat_id, text="Boobies #2", timeout=GLOBAL_TIMEOUT)
@@ -128,6 +146,9 @@ def vote(bot, update):
     bot.send_message(chat_id=chat_id, text='Choisi ton favori:', reply_markup=reply_markup, timeout=GLOBAL_TIMEOUT)
 
 def button(bot, update):
+    """
+    Telegram button callback for the votes
+    """
     query = update.callback_query
     user_id = query.from_user.id
     data = query.data.split("|")
@@ -141,6 +162,7 @@ def button(bot, update):
     votes = VOTES['votes']
     
     if len(vote_elo['tokens']) == 0:
+        logger.warning("no more tokens to vote ...")
         return
     
     if len(data) == 2:
@@ -149,12 +171,12 @@ def button(bot, update):
             if not user_id in votes.keys():
                 token = vote_elo['tokens'].pop()
                 if choice == "meh":
-                    url = "http://ns3276663.ip-5-39-89.eu:58080/?id=%s&draw_left=%s&draw_right=%s" % (token, vote_elo['choice_left'], vote_elo['choice_right'])
+                    url = "%s:%s/?id=%s&draw_left=%s&draw_right=%s" % (URL_ELO, PORT_ELO, token, vote_elo['choice_left'], vote_elo['choice_right'])
                 else:
                     win = vote_elo[choice]
                     VOTES[choice] += 1
                     loose = vote_elo['choice_right'] if choice == 'choice_left' else vote_elo['choice_left']
-                    url = "http://ns3276663.ip-5-39-89.eu:58080/?id=%s&win=%s&loose=%s" % (token, win, loose)
+                    url = "%s:%s/?id=%s&win=%s&loose=%s" % (URL_ELO, PORT_ELO, token, win, loose)
         
                 voter = query.from_user.username
                 if voter is None:
@@ -162,12 +184,17 @@ def button(bot, update):
                 text = u"%s a voté !" % voter
                 bot.send_message(chat_id=query.message.chat_id, text=text, timeout=GLOBAL_TIMEOUT)
         
-                logger.info(url)
+                logger.info("das_vote_callback - %s" % url)
                 requests.get(url)
                 
                 VOTES['votes'][user_id] = choice
 
 def stopvote(bot, update):
+    """
+    Telegram command to close a boobies vote
+    /stopvote
+    """
+    logger.info("Vote results asked by '%s %s' (id=%s)" % (update.message.from_user.first_name, update.message.from_user.last_name, update.message.from_user.id))
     chat_id = update.message.chat_id
     global VOTES
     if VOTES is None:
@@ -189,17 +216,24 @@ def stopvote(bot, update):
             bot.send_message(chat_id=chat_id, text="And the winner is (avec %s votes contre %s):" % (result_right, result_left), timeout=GLOBAL_TIMEOUT)
             victory_boobies = vote_elo['choice_right']
 
-        cado = "http://ns3276663.ip-5-39-89.eu/elo-gif/%s" % victory_boobies
+        cado = "%s/%s" % (URL_ELO_GIF, victory_boobies)
+        logger.info("results - %s" % cado)
         bot.send_document(chat_id=chat_id, document=cado, timeout=GLOBAL_TIMEOUT)
   
         VOTES=None
 
-def next(bot, update):
+def next_command(bot, update):
+    """
+    Telegram command to close a boobies vote and propose a new one
+    /next
+    """
     stopvote(bot, update)
     vote(bot, update)
 
 def error(bot, update, error):
     logger.warning('Update "%s" caused error "%s"' % (update, error))
+    chat_id = update.message.chat_id
+    bot.send_message(chat_id=chat_id, text="Putain t'as tout pété !\n%s" % (error), timeout=GLOBAL_TIMEOUT)
 
 def main(token):
     # Create the Updater and pass it your bot's token.
@@ -210,11 +244,11 @@ def main(token):
 
     # on different commands - answer in Telegram
     dp.add_handler(CommandHandler("start", start))
-    dp.add_handler(CommandHandler("help", help))
+    dp.add_handler(CommandHandler("help", help_command))
     dp.add_handler(CommandHandler("random", random))
     dp.add_handler(CommandHandler("rank", rank))
     dp.add_handler(CommandHandler("vote", vote))
-    dp.add_handler(CommandHandler("next", next))
+    dp.add_handler(CommandHandler("next", next_command))
     dp.add_handler(CommandHandler("stopvote", stopvote))
     dp.add_handler(CallbackQueryHandler(button))
 
