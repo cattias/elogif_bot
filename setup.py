@@ -1,5 +1,5 @@
 from distutils.core import setup
 setup(name='elogif',
-    version='1.13',
+    version='1.14',
     scripts=['dasbot.py'],
     )

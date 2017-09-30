@@ -184,7 +184,7 @@ def button(bot, update):
                 text = u"%s a voté !" % voter
                 bot.send_message(chat_id=query.message.chat_id, text=text, timeout=GLOBAL_TIMEOUT)
         
-                logger.info("das_vote_callback - %s" % url)
+                logger.info("das_vote_callback - %s - %s" % (voter, url))
                 requests.get(url)
                 
                 VOTES['votes'][user_id] = choice
