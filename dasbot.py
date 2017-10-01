@@ -32,8 +32,9 @@ def help_command(bot, update):
 /random si tu veux des boobies random
 /rank xx si tu veux les boobies de rang xx
 /vote si tu veux proposer un vote !
-/stopvote pour terminer le vote en cours
+/stop pour terminer le vote en cours
 /next pour terminer le vote en cours et enchainer direct sur un nouveau vote ... parce qu'on est pas là pour niaiser !
+/result pour voir les resultats en cours de route
     """
     bot.send_message(chat_id=update.message.chat_id, text=help_text, timeout=GLOBAL_TIMEOUT)
 
