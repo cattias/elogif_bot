@@ -16,7 +16,7 @@ COUNTER = {}
 LAST = {}
 LIMIT_PER_USER = 10
 TIME_LIMIT = datetime.timedelta(seconds=60)
-VOTES = None
+VOTES = {}
 GLOBAL_TIMEOUT = 300
 URL_ELO = 'http://ns3276663.ip-5-39-89.eu'
 PORT_ELO = 58080
@@ -113,7 +113,7 @@ def vote(bot, update):
     chat_member_count = bot.get_chat_members_count(chat_id)
     global VOTES
     
-    if VOTES is not None:
+    if VOTES.get(chat_id) is not None:
         bot.send_message(chat_id=chat_id, text="Y a déjà un vote en cours. Si tu veux lancer un nouveau vote, termine celui là avec /stopvote. Bisous.", timeout=GLOBAL_TIMEOUT)
         return
     
@@ -129,7 +129,7 @@ def vote(bot, update):
     cado_2 = "%s/%s" % (URL_ELO_GIF, boobies_2)
     logger.info("vote - cado_2 - %s" % cado_2)
 
-    VOTES = {'id': vote_id, 'vote_elo' : vote_elo, 'votes' : {}, 'choice_left' : 0, 'choice_right' : 0}
+    VOTES[chat_id] = {'id': vote_id, 'vote_elo' : vote_elo, 'votes' : {}, 'choice_left' : 0, 'choice_right' : 0}
 
     bot.send_message(chat_id=chat_id, text="C'est le moment de voter les coquinous !", timeout=GLOBAL_TIMEOUT)
     bot.send_message(chat_id=chat_id, text="Boobies #1", timeout=GLOBAL_TIMEOUT)
@@ -151,15 +151,16 @@ def button(bot, update):
     """
     query = update.callback_query
     user_id = query.from_user.id
+    chat_id = query.message.chat_id
     data = query.data.split("|")
     global VOTES
 
-    if VOTES is None:
+    if VOTES.get(chat_id) is None:
         return
 
-    vote_id = VOTES['id']
-    vote_elo = VOTES['vote_elo']
-    votes = VOTES['votes']
+    vote_id = VOTES[chat_id]['id']
+    vote_elo = VOTES[chat_id]['vote_elo']
+    votes = VOTES[chat_id]['votes']
     
     if len(vote_elo['tokens']) == 0:
         logger.warning("no more tokens to vote ...")
@@ -174,7 +175,7 @@ def button(bot, update):
                     url = "%s:%s/?id=%s&draw_left=%s&draw_right=%s" % (URL_ELO, PORT_ELO, token, vote_elo['choice_left'], vote_elo['choice_right'])
                 else:
                     win = vote_elo[choice]
-                    VOTES[choice] += 1
+                    VOTES[chat_id][choice] += 1
                     loose = vote_elo['choice_right'] if choice == 'choice_left' else vote_elo['choice_left']
                     url = "%s:%s/?id=%s&win=%s&loose=%s" % (URL_ELO, PORT_ELO, token, win, loose)
         
@@ -182,32 +183,48 @@ def button(bot, update):
                 if voter is None:
                     voter = query.from_user.first_name
                 text = u"%s a voté !" % voter
-                bot.send_message(chat_id=query.message.chat_id, text=text, timeout=GLOBAL_TIMEOUT)
+                bot.send_message(chat_id=chat_id, text=text, timeout=GLOBAL_TIMEOUT)
         
                 logger.info("das_vote_callback - %s - %s" % (voter, url))
                 requests.get(url)
                 
-                VOTES['votes'][user_id] = choice
+                VOTES[chat_id]['votes'][user_id] = choice
+
+    if len(vote_elo['tokens']) == 1:
+        # == 1 because the bot elogif_bot is counted as 1 in the process and won't vote => assuming it's the only bot in the group too
+        logger.info("Everybody has voted ! => next vote !!")
+#         bot.send_message(chat_id=chat_id, text="Tout le monde il a voté, on passe au suivant !", timeout=GLOBAL_TIMEOUT)
+#         next_command(bot, update, chat_id=chat_id)
 
 def stopvote(bot, update):
     """
     Telegram command to close a boobies vote
     /stopvote
     """
+    chat_id = update.message.chat_id
+    result(bot, update)
+    global VOTES
+    if VOTES.get(chat_id):
+        VOTES[chat_id] = None
+
+def result(bot, update):
+    """
+    Telegram command to see the current results of a boobies vote (without closing it)
+    /result
+    """
     logger.info("Vote results asked by '%s %s' (id=%s)" % (update.message.from_user.first_name, update.message.from_user.last_name, update.message.from_user.id))
     chat_id = update.message.chat_id
     global VOTES
-    if VOTES is None:
+    if VOTES.get(chat_id) is None:
         bot.send_message(chat_id=chat_id, text="Y a pas de vote en cours ...", timeout=GLOBAL_TIMEOUT)
     else:
-        vote_elo = VOTES['vote_elo']
-        result_left = VOTES['choice_left']
-        result_right = VOTES['choice_right']
+        vote_elo = VOTES[chat_id]['vote_elo']
+        result_left = VOTES[chat_id]['choice_left']
+        result_right = VOTES[chat_id]['choice_right']
         
         victory_boobies = None
         if result_left == result_right:
             bot.send_message(chat_id=chat_id, text="Egalité entre les deux (%s votes chacun) ... c'est naze" % result_left, timeout=GLOBAL_TIMEOUT)
-            VOTES=None
             return
         elif result_left > result_right:
             bot.send_message(chat_id=chat_id, text="And the winner is (avec %s votes contre %s):" % (result_left, result_right), timeout=GLOBAL_TIMEOUT)
@@ -219,8 +236,6 @@ def stopvote(bot, update):
         cado = "%s/%s" % (URL_ELO_GIF, victory_boobies)
         logger.info("results - %s" % cado)
         bot.send_document(chat_id=chat_id, document=cado, timeout=GLOBAL_TIMEOUT)
-  
-        VOTES=None
 
 def next_command(bot, update):
     """
@@ -249,7 +264,8 @@ def main(token):
     dp.add_handler(CommandHandler("rank", rank))
     dp.add_handler(CommandHandler("vote", vote))
     dp.add_handler(CommandHandler("next", next_command))
-    dp.add_handler(CommandHandler("stopvote", stopvote))
+    dp.add_handler(CommandHandler(["stopvote", "stop"], stopvote))
+    dp.add_handler(CommandHandler("result", result))
     dp.add_handler(CallbackQueryHandler(button))
 
     # log all errors
