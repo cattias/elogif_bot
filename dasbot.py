@@ -270,8 +270,8 @@ def next_command(bot, update):
 
 def error(bot, update, error):
     logger.warning('Update "%s" caused error "%s"' % (update, error))
-    chat_id = update.message.chat_id
-    bot.send_message(chat_id=chat_id, text=unicode("Putain t'as tout pété !\n%s" % (error)), timeout=GLOBAL_TIMEOUT)
+    if update and update.message and update.message.chat_id:
+        bot.send_message(chat_id=update.message.chat_id, text=unicode("Putain t'as tout pété !\n%s" % (error)), timeout=GLOBAL_TIMEOUT)
 
 class CheckOnGoingVotes(threading.Thread):
     def __init__(self, threadID, name, event, bot):
