@@ -109,8 +109,15 @@ def vote(bot, update):
     Telegram command to propose a boobies vote
     /vote
     """
-    logger.info("Vote asked by '%s %s' (id=%s)" % (update.message.from_user.first_name, update.message.from_user.last_name, update.message.from_user.id))
     chat_id = update.message.chat_id
+    _internal_vote(bot, update.message.from_user.first_name, update.message.from_user.last_name, update.message.from_user.id, chat_id)
+
+def _internal_vote(bot, first_name, last_name, user_id, chat_id):
+    """
+    Telegram command to propose a boobies vote
+    /vote
+    """
+    logger.info("Vote asked by '%s %s' (id=%s)" % (first_name, last_name, user_id))
     chat_member_count = bot.get_chat_members_count(chat_id)
     global VOTES
     
@@ -194,16 +201,23 @@ def button(bot, update):
     if len(vote_elo['tokens']) == 1:
         # == 1 because the bot elogif_bot is counted as 1 in the process and won't vote => assuming it's the only bot in the group too
         logger.info("Everybody has voted ! => next vote !!")
-#         bot.send_message(chat_id=chat_id, text="Tout le monde il a voté, on passe au suivant !", timeout=GLOBAL_TIMEOUT)
-#         next_command(bot, update, chat_id=chat_id)
+        bot.send_message(chat_id=chat_id, text="Tout le monde il a voté, on passe au suivant !", timeout=GLOBAL_TIMEOUT)
+        _internal_stopvote(bot, query.from_user.first_name, query.from_user.last_name, user_id, chat_id)
+        _internal_vote(bot, query.from_user.first_name, query.from_user.last_name, user_id, chat_id)
 
 def stopvote(bot, update):
     """
     Telegram command to close a boobies vote
     /stopvote
     """
-    chat_id = update.message.chat_id
-    result(bot, update)
+    _internal_stopvote(bot, update.message.from_user.first_name, update.message.from_user.last_name, update.message.from_user.id, update.message.chat_id)
+
+def _internal_stopvote(bot, first_name, last_name, user_id, chat_id):
+    """
+    Telegram command to close a boobies vote
+    /stopvote
+    """
+    _internal_result(bot, first_name, last_name, user_id, chat_id)
     global VOTES
     if VOTES.get(chat_id):
         VOTES[chat_id] = None
@@ -213,8 +227,14 @@ def result(bot, update):
     Telegram command to see the current results of a boobies vote (without closing it)
     /result
     """
-    logger.info("Vote results asked by '%s %s' (id=%s)" % (update.message.from_user.first_name, update.message.from_user.last_name, update.message.from_user.id))
-    chat_id = update.message.chat_id
+    _internal_result(bot, update.message.from_user.first_name, update.message.from_user.last_name, update.message.from_user.id, update.message.chat_id)
+
+def _internal_result(bot, first_name, last_name, user_id, chat_id):
+    """
+    Telegram command to see the current results of a boobies vote (without closing it)
+    /result
+    """
+    logger.info("Vote results asked by '%s %s' (id=%s)" % (first_name, last_name, user_id))
     global VOTES
     if VOTES.get(chat_id) is None:
         bot.send_message(chat_id=chat_id, text="Y a pas de vote en cours ...", timeout=GLOBAL_TIMEOUT)
@@ -249,7 +269,7 @@ def next_command(bot, update):
 def error(bot, update, error):
     logger.warning('Update "%s" caused error "%s"' % (update, error))
     chat_id = update.message.chat_id
-    bot.send_message(chat_id=chat_id, text="Putain t'as tout pété !\n%s" % (error), timeout=GLOBAL_TIMEOUT)
+    bot.send_message(chat_id=chat_id, text=unicode("Putain t'as tout pété !\n%s" % (error)), timeout=GLOBAL_TIMEOUT)
 
 def main(token):
     # Create the Updater and pass it your bot's token.
