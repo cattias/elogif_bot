@@ -17,7 +17,7 @@ COUNTER = {}
 LAST = {}
 LIMIT_PER_USER = 10
 TIME_LIMIT = datetime.timedelta(seconds=60)
-VOTE_TIME_LIMIT = datetime.timedelta(seconds=60)
+VOTE_TIME_LIMIT = datetime.timedelta(seconds=300)
 VOTES = {}
 GLOBAL_TIMEOUT = 300
 URL_ELO = 'http://ns3276663.ip-5-39-89.eu'
@@ -287,9 +287,14 @@ class CheckOnGoingVotes(threading.Thread):
             for chat_id in VOTES.keys():
                 if VOTES[chat_id] is not None:
                     if VOTES[chat_id]['start_time'] + VOTE_TIME_LIMIT < datetime.datetime.now():
-                        self.bot.send_message(chat_id=chat_id, text="Ça niaise trop ... on passe au suivant", timeout=GLOBAL_TIMEOUT)
+                        do_next = not VOTES[chat_id]['votes'] == {}
+                        text = "Ça niaise trop ..."
+                        if do_next:
+                            text += " on passe au suivant"
+                        self.bot.send_message(chat_id=chat_id, text=text, timeout=GLOBAL_TIMEOUT)
                         _internal_stopvote(self.bot, "Das", "Bot", -1, chat_id)
-                        _internal_vote(self.bot, "Das", "Bot", -1, chat_id)
+                        if do_next:
+                            _internal_vote(self.bot, "Das", "Bot", -1, chat_id)
 
 def main(token):
     # Create the Updater and pass it your bot's token.
