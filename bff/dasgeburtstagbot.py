@@ -31,14 +31,13 @@ BFF_EASTER_EGG = [
     "https://media.giphy.com/media/b5iO1KtQpTkxq/giphy.gif",
     "https://media.giphy.com/media/l0He2qi0EGY5y4HZK/giphy.gif",
     "https://media.giphy.com/media/qpnjSTdNg0gBG/giphy.gif",
-    "http://ns3276663.ip-5-39-89.eu/elo-gif/1eeef8fe84098a08dc81d21c8519769bd9af0ce6.gif",
-    "http://ns3276663.ip-5-39-89.eu/elo-gif/2MRvnqK.gif.jpg",
-    "http://ns3276663.ip-5-39-89.eu/elo-gif/4f9f6c2dc154697040f8281f36fe63766ecded3c.gif",
-    "http://ns3276663.ip-5-39-89.eu/elo-gif/ibiDVGoA2o4PXN.gif",
-    "http://ns3276663.ip-5-39-89.eu/elo-gif/1366907760-1366904520158.gif",
-    "http://ns3276663.ip-5-39-89.eu/elo-gif/1366907760-1366904392969.gif",
-    "http://ns3276663.ip-5-39-89.eu/elo-gif/6483102t6wm.gif",
-    "http://ns3276663.ip-5-39-89.eu/elo-gif/ceb7618f6fe4f3ca9ac9780731c48b84a705604f.gif",
+    "https://media.giphy.com/media/3ov9jIRSrqigFb7vd6/giphy.gif",
+    "https://media.giphy.com/media/3o7aD0m6SMTVFwZm3S/giphy.gif",
+    "https://media.giphy.com/media/xT9IgBm08DWJElsTD2/giphy.gif",
+    "https://media.giphy.com/media/3ohhwfs6xcUWQBVIEo/giphy.gif",
+    "https://media.giphy.com/media/l1J9G6uX0fHktGdLG/giphy.gif",
+    "https://media.giphy.com/media/3ohhwCNTOIhkGAGlXO/giphy.gif",
+    "https://media.giphy.com/media/3ohhwolUdQFoQEV5hm/giphy.gif",
     ]
 BFF_EASTER_EGG_LAST = None
 ROOM_ID = -299669831
