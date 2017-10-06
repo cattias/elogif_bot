@@ -292,9 +292,12 @@ class CheckOnGoingVotes(threading.Thread):
                         if do_next:
                             text += " on passe au suivant"
                         self.bot.send_message(chat_id=chat_id, text=text, timeout=GLOBAL_TIMEOUT)
-                        _internal_stopvote(self.bot, "Das", "Bot", -1, chat_id)
-                        if do_next:
-                            _internal_vote(self.bot, "Das", "Bot", -1, chat_id)
+                        try:
+                            _internal_stopvote(self.bot, "Das", "Bot", -1, chat_id)
+                            if do_next:
+                                _internal_vote(self.bot, "Das", "Bot", -1, chat_id)
+                        except Exception, ex:
+                            logger.warning("Error : %s" % str(ex))
 
 def main(token):
     # Create the Updater and pass it your bot's token.
