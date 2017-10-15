@@ -5,6 +5,7 @@ import threading
 urllib3.disable_warnings()
 
 import requests, argparse, uuid
+from random import randint
 from telegram import InlineKeyboardButton, InlineKeyboardMarkup
 from telegram.ext import Updater, CommandHandler, CallbackQueryHandler
 import logging
@@ -24,6 +25,17 @@ URL_ELO = 'http://ns3276663.ip-5-39-89.eu'
 PORT_ELO = 58080
 URL_ELO_API = '%s:%s/api' % (URL_ELO, PORT_ELO)
 URL_ELO_GIF = '%s/elo-gif' % URL_ELO
+
+KATEE = [
+    "https://i.imgur.com/TwQWyZ5.mp4",
+    "https://media.giphy.com/media/3ov9jIRSrqigFb7vd6/giphy.gif",
+    "https://media.giphy.com/media/3o7aD0m6SMTVFwZm3S/giphy.gif",
+    "https://media.giphy.com/media/xT9IgBm08DWJElsTD2/giphy.gif",
+    "https://media.giphy.com/media/3ohhwfs6xcUWQBVIEo/giphy.gif",
+    "https://media.giphy.com/media/l1J9G6uX0fHktGdLG/giphy.gif",
+    "https://media.giphy.com/media/3ohhwCNTOIhkGAGlXO/giphy.gif",
+    "https://media.giphy.com/media/3ohhwolUdQFoQEV5hm/giphy.gif",
+    ]
 
 def start(bot, update):
     bot.send_message(chat_id=update.message.chat_id, text='Salut les moules! Qui veut du boobies ??', timeout=GLOBAL_TIMEOUT)
@@ -95,7 +107,23 @@ def katee(bot, update):
     Telegram command to get Katee
     /katee /bff
     """
-    _get_boobies(bot, update, command="katee", url_boobies='https://i.imgur.com/TwQWyZ5.mp4')
+    rank_n = 0
+    if update.message.text:
+        split = update.message.text.split(" ")
+        if len(split) > 1:
+            le_rank = split[1]
+        else:
+            le_rank = None
+        try:
+            rank_n = int(le_rank)
+        except:
+            pass
+    url_boobies = None
+    if rank_n:
+        url_boobies = KATEE[rank_n % len(KATEE)]
+    else:
+        url_boobies = KATEE[randint(0, len(KATEE)-1)]
+    _get_boobies(bot, update, command="katee", url_boobies=url_boobies)
 
 def rank(bot, update):
     """
