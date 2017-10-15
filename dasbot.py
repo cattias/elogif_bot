@@ -107,7 +107,7 @@ def katee(bot, update):
     Telegram command to get Katee
     /katee /bff
     """
-    rank_n = 0
+    rank_n = None
     if update.message.text:
         split = update.message.text.split(" ")
         if len(split) > 1:
@@ -119,8 +119,13 @@ def katee(bot, update):
         except:
             pass
     url_boobies = None
-    if rank_n:
-        url_boobies = KATEE[rank_n % len(KATEE)]
+    if rank_n is not None:
+        if rank_n > len(KATEE) - 1:
+            rank_n = rank_n % len(KATEE)
+        if rank_n < 0:
+            rank_n = 0
+        logger.info("katee rank : %s" % rank_n)
+        url_boobies = KATEE[rank_n]
     else:
         url_boobies = KATEE[randint(0, len(KATEE)-1)]
     _get_boobies(bot, update, command="katee", url_boobies=url_boobies)
