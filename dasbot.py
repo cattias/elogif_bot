@@ -105,7 +105,7 @@ def random(bot, update):
 def katee(bot, update):
     """
     Telegram command to get Katee
-    /katee /bff
+    /katee
     """
     rank_n = None
     if update.message.text:
@@ -128,6 +128,14 @@ def katee(bot, update):
         url_boobies = KATEE[rank_n]
     else:
         url_boobies = KATEE[randint(0, len(KATEE)-1)]
+    _get_boobies(bot, update, command="katee", url_boobies=url_boobies)
+
+def bff(bot, update):
+    """
+    Telegram command to get Katee best
+    /bff
+    """
+    url_boobies = KATEE[0]
     _get_boobies(bot, update, command="katee", url_boobies=url_boobies)
 
 def rank(bot, update):
@@ -360,7 +368,8 @@ def main(token):
     dp.add_handler(CommandHandler("next", next_command))
     dp.add_handler(CommandHandler(["stopvote", "stop"], stopvote))
     dp.add_handler(CommandHandler("result", result))
-    dp.add_handler(CommandHandler(["katee", "bff"], katee))
+    dp.add_handler(CommandHandler("katee", katee))
+    dp.add_handler(CommandHandler("bff", bff))
     dp.add_handler(CallbackQueryHandler(button))
 
     # log all errors
