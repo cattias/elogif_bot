@@ -37,10 +37,11 @@ def help_command(bot, update):
 /stop pour terminer le vote en cours
 /next pour terminer le vote en cours et enchainer direct sur un nouveau vote ... parce qu'on est pas là pour niaiser !
 /result pour voir les resultats en cours de route
+/katee - parce que Katee ...
     """
     bot.send_message(chat_id=update.message.chat_id, text=help_text, timeout=GLOBAL_TIMEOUT)
 
-def _get_boobies(bot, update, command, rank=None):
+def _get_boobies(bot, update, command, rank=None, url_boobies=None):
     """
     Internal command to get boobies, either rank or random
     command = 'rank' or 'random'
@@ -63,17 +64,21 @@ def _get_boobies(bot, update, command, rank=None):
     else:
         if COUNTER[user_id] > LIMIT_PER_USER and delta >= TIME_LIMIT:
             COUNTER[user_id] = 0
-        url = '%s/%s' % (URL_ELO_API, command)
-        if rank is not None and command == 'rank':
-            url = '%s/%s' % (url, rank)
-        logger.info("_get_boobies - %s - %s" % (command, url))
-        request_elo = requests.get(url).json()
-        boobies = None
-        if command == 'rank':
-            boobies = request_elo[0]['gif']
+        cado = None
+        if url_boobies:
+            cado = url_boobies
         else:
-            boobies = request_elo['gif']
-        cado = "%s/%s" % (URL_ELO_GIF, boobies)
+            url = '%s/%s' % (URL_ELO_API, command)
+            if rank is not None and command == 'rank':
+                url = '%s/%s' % (url, rank)
+            logger.info("_get_boobies - %s - %s" % (command, url))
+            request_elo = requests.get(url).json()
+            boobies = None
+            if command == 'rank':
+                boobies = request_elo[0]['gif']
+            else:
+                boobies = request_elo['gif']
+            cado = "%s/%s" % (URL_ELO_GIF, boobies)
         logger.info("_get_boobies - %s - %s" % (command, cado))
         LAST[user_id] = datetime.datetime.now()
         bot.send_document(chat_id=chat_id, document=cado, timeout=GLOBAL_TIMEOUT)
@@ -84,6 +89,13 @@ def random(bot, update):
     /random
     """
     _get_boobies(bot, update, command='random')
+
+def katee(bot, update):
+    """
+    Telegram command to get Katee
+    /katee /bff
+    """
+    _get_boobies(bot, update, command="katee", url_boobies='https://i.imgur.com/TwQWyZ5.mp4')
 
 def rank(bot, update):
     """
@@ -315,6 +327,7 @@ def main(token):
     dp.add_handler(CommandHandler("next", next_command))
     dp.add_handler(CommandHandler(["stopvote", "stop"], stopvote))
     dp.add_handler(CommandHandler("result", result))
+    dp.add_handler(CommandHandler(["katee", "bff"], katee))
     dp.add_handler(CallbackQueryHandler(button))
 
     # log all errors
